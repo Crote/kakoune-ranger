@@ -1,8 +1,13 @@
-# Open files previously chosen by ranger, stored in /tmp/ranger-files
+# Open files previously chosen by ranger, stored in param 1
 def -hidden ranger-execute-open -params 1 %{ evaluate-commands %sh{
   while read f; do
     echo "edit '$f';"
   done < $1
+}}
+
+# Change server directory to one previously chosen by ranger
+def -hidden ranger-execute-cd -params 1 %{ evaluate-commands %sh{
+  echo "change-directory $(cat $1)"
 }}
 
 # Helper to allow another program to take over the terminal
@@ -27,8 +32,19 @@ def -hidden ranger-select-internal -params 1 %{
   ranger-execute-open %arg{1}
 }
 
-# User-facing command
+# Run ranger to select directory
+def -hidden ranger-cd-internal -params 1 %{
+  ranger-suspend "ranger --show-only-dirs --choosedir='%arg{1}' &&fg;history -d $(history 1);clear"
+  ranger-execute-cd %arg{1}
+}
+
+# User-facing commands
+
 # We're creating a new tmp file on every execution, but that'll be cleaned up on reboot so we don't care
 def -docstring "Select files to edit using ranger" ranger-select %{
   ranger-select-internal %sh{ mktemp }
+}
+
+def -docstring "Navigate to directory to cd into using ranger" ranger-cd %{
+  ranger-cd-internal %sh{ mktemp }
 }
