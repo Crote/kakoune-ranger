@@ -6,9 +6,19 @@ def -hidden ranger-execute-open -params 1 %{ evaluate-commands %sh{
 }}
 
 # Helper to allow another program to take over the terminal
-def -hidden ranger-suspend -params 1 %{ nop %sh{
+def -hidden ranger-suspend -params 1 %{ evaluate-commands %sh{
+  parent_pid=$(cat /proc/$kak_client_pid/status | grep PPid | sed 's/[^0-9]*\([0-9]\+\)$/\1/g')
+  parent_bin=$(realpath /proc/$parent_pid/exe)
+  shell_blacklist="\(/tmux\|/screen\)"
+  valid_shell=$(cat /etc/shells | grep -v "$shell_blacklist" | grep $parent_bin | wc -l)
+  echo "echo -debug \"my pid: $kak_client_pid, parent: $parent_pid, parent exec: $parent_bin valid: $valid_shell\""
+  if [ $valid_shell == 0 ]; then
+    echo "fail \"Cannot open ranger: client not running in a shell!\""
+    exit
+  fi
   nohup sh -c "sleep 0.1; xdotool type --delay 2 '$1'; xdotool key Return" > /dev/null 2>&1 &
-  /usr/bin/kill -SIGTSTP $PPID
+  /usr/bin/kill -SIGTSTP $kak_client_pid
+  echo "nop"
 }}
 
 # Run ranger to select files, using the specified file to pass the selection
