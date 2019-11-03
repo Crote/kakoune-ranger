@@ -26,7 +26,11 @@ def -hidden ranger-suspend -params 1 %{ evaluate-commands %sh{
     echo "fail \"Cannot open ranger: client not running in a shell!\""
     exit
   fi
-  nohup sh -c "sleep 0.1; xdotool type --delay 2 \"$1\"; xdotool key Return" > /dev/null 2>&1 &
+  if [ -z ${TMUX_PANE+x} ]; then
+    echo "fail \"Cannot open ranger: this only works inside tmux!\""
+    exit
+  fi
+  nohup sh -c "sleep 0.1; tmux send-keys -t $TMUX_PANE -l \"$1\"; tmux send-keys -t $TMUX_PANE \"Enter\"" > /dev/null 2>&1 &
   /usr/bin/kill -SIGTSTP $kak_client_pid
   echo "nop"
 }}
